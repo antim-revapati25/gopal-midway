@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/gopal-midway/static/css/main.a2880485.css",
+    "main.js": "/gopal-midway/static/js/main.a1fbb266.js",
+    "index.html": "/gopal-midway/index.html",
+    "main.a2880485.css.map": "/gopal-midway/static/css/main.a2880485.css.map",
+    "main.a1fbb266.js.map": "/gopal-midway/static/js/main.a1fbb266.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.a2880485.css",
+    "static/js/main.a1fbb266.js"
+  ]
+}
