@@ -160,9 +160,22 @@ function AddBtn({ item }) {
 function CartDrawer({ open, onClose }) {
   const { items, updateQty, clear, total, count } = useCart();
   const navigate = useNavigate();
+  const [custName, setCustName] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+  const [custAddress, setCustAddress] = useState('');
+  const [orderType, setOrderType] = useState('delivery');
+  const [showErrors, setShowErrors] = useState(false);
 
   const checkout = () => {
     if (!items.length) return;
+    // Validate
+    if (orderType === 'delivery' && (!custName.trim() || !custPhone.trim() || !custAddress.trim())) {
+      setShowErrors(true); return;
+    }
+    if (orderType === 'pickup' && (!custName.trim() || !custPhone.trim())) {
+      setShowErrors(true); return;
+    }
+
     const orderNum = 'GM-' + Date.now().toString(36).toUpperCase().slice(-6);
     const orderTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     const orderDate = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -173,15 +186,23 @@ function CartDrawer({ open, onClose }) {
     let m = '🍽️ *New Order — Hotel Gopal Midway*\n';
     m += '📋 Order #' + orderNum + '\n';
     m += '━━━━━━━━━━━━━━━━━\n\n';
+    m += '👤 *Name:* ' + custName.trim() + '\n';
+    m += '📞 *Phone:* ' + custPhone.trim() + '\n';
+    m += '📦 *Order Type:* ' + (orderType === 'delivery' ? '🚚 Delivery' : '🏃 Pickup') + '\n';
+    if (orderType === 'delivery' && custAddress.trim()) {
+      m += '📍 *Delivery Address:*\n' + custAddress.trim() + '\n';
+    }
+    m += '\n━━━━━━━━━━━━━━━━━\n';
     items.forEach((it, i) => { m += (i+1) + '. ' + it.name + '\n   Qty: ' + it.qty + ' × ₹' + it.price + ' = ₹' + (it.qty * it.price) + '\n\n'; });
-    m += '━━━━━━━━━━━━━━━━━\n📦 *Total Items:* ' + orderCount + '\n💰 *Grand Total:* ₹' + orderTotal + '\n\n📍 Please confirm delivery/pickup.\nThank you! 🙏';
+    m += '━━━━━━━━━━━━━━━━━\n📦 *Total Items:* ' + orderCount + '\n💰 *Grand Total:* ₹' + orderTotal + '\n\nPlease confirm. Thank you! 🙏';
     window.open('https://wa.me/' + WA + '?text=' + encodeURIComponent(m), '_blank');
 
     clear();
+    setCustName(''); setCustPhone(''); setCustAddress(''); setShowErrors(false);
     onClose();
 
     navigate('/order-confirmed', {
-      state: { id: orderNum, time: orderTime, date: orderDate, items: orderItems, total: orderTotal, count: orderCount }
+      state: { id: orderNum, time: orderTime, date: orderDate, items: orderItems, total: orderTotal, count: orderCount, name: custName.trim(), phone: custPhone.trim(), address: custAddress.trim(), orderType }
     });
   };
 
@@ -219,6 +240,38 @@ function CartDrawer({ open, onClose }) {
           <div className="cart-footer">
             <button className="cart-clear" onClick={clear}>Clear All</button>
             <div className="cart-total-row"><span>Grand Total</span><span className="cart-grand-total">₹{total}</span></div>
+
+            {/* Customer Details Form */}
+            <div className="cart-form">
+              <div className="cart-form-title">📋 Your Details</div>
+
+              {/* Order Type Toggle */}
+              <div className="cart-order-type">
+                <button className={'cot-btn' + (orderType === 'delivery' ? ' active' : '')} onClick={() => setOrderType('delivery')}>🚚 Delivery</button>
+                <button className={'cot-btn' + (orderType === 'pickup' ? ' active' : '')} onClick={() => setOrderType('pickup')}>🏃 Pickup</button>
+              </div>
+
+              <input
+                className={'cart-input' + (showErrors && !custName.trim() ? ' error' : '')}
+                type="text" placeholder="Your name *"
+                value={custName} onChange={e => setCustName(e.target.value)}
+              />
+              <input
+                className={'cart-input' + (showErrors && !custPhone.trim() ? ' error' : '')}
+                type="tel" placeholder="Phone number *"
+                value={custPhone} onChange={e => setCustPhone(e.target.value)}
+              />
+              {orderType === 'delivery' && (
+                <textarea
+                  className={'cart-input cart-textarea' + (showErrors && !custAddress.trim() ? ' error' : '')}
+                  placeholder="Delivery address *&#10;e.g. House no., street, landmark, area"
+                  value={custAddress} onChange={e => setCustAddress(e.target.value)}
+                  rows={3}
+                />
+              )}
+              {showErrors && <p className="cart-form-error">⚠ Please fill in all required fields</p>}
+            </div>
+
             <button className="cart-checkout" onClick={checkout}><span>Order via WhatsApp</span><span>💬</span></button>
             <p className="cart-note">You'll be redirected to WhatsApp to confirm your order</p>
           </div>
@@ -227,6 +280,7 @@ function CartDrawer({ open, onClose }) {
     </>
   );
 }
+
 
 function CartFAB() {
   const { count, total } = useCart(); const [open, setOpen] = useState(false); const [bounce, setBounce] = useState(false);
@@ -356,7 +410,16 @@ function OrderConfirmation() {
             <div className="oc-meta-chip"><span>📅</span> {order.date}</div>
             <div className="oc-meta-chip"><span>⏰</span> {order.time}</div>
             <div className="oc-meta-chip"><span>🍽️</span> {order.count} item{order.count !== 1 ? 's' : ''}</div>
+            <div className="oc-meta-chip"><span>{order.orderType === 'delivery' ? '🚚' : '🏃'}</span> {order.orderType === 'delivery' ? 'Delivery' : 'Pickup'}</div>
           </div>
+          {/* Customer info */}
+          {order.name && (
+            <div className="oc-page-cust-info">
+              <div className="oc-cust-row"><span className="oc-cust-icon">👤</span><span>{order.name}</span></div>
+              {order.phone && <div className="oc-cust-row"><span className="oc-cust-icon">📞</span><span>{order.phone}</span></div>}
+              {order.address && <div className="oc-cust-row"><span className="oc-cust-icon">📍</span><span>{order.address}</span></div>}
+            </div>
+          )}
         </div>
 
         {/* Content grid */}
